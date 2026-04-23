@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bússola Global Pro - Nav-System</title>
+    <style>
+        :root {
+            --bg: #070a13;
+            --card: #111827;
+            --accent: #0ea5e9;
+            --north: #f43f5e;
+            --success: #10b981;
+            --text: #f8fafc;
+            --muted: #64748b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        body {
+            background-color: var(--bg); color: var(--text);
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 1.5rem;
+        }
+
+        .app-container {
+            background-color: var(--card); padding: 2rem; border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); width: 100%; max-width: 420px;
+            border: 1px solid #1f2937; text-align: center;
+        }
+
+        h2 { font-weight: 300; letter-spacing: 3px; margin-bottom: 1.5rem; color: #94a3b8; }
+
+        #btn-init {
+            width: 100%; padding: 20px; border-radius: 16px; border: none;
+            background: linear-gradient(135deg, var(--accent), #0369a1); color: white;
+            font-weight: bold; font-size: 1rem; cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3); transition: 0.3s;
+        }
+
+        .search-section { position: relative; width: 100%; display: none; }
+
+        input[type="text"] {
+            width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #374151;
+            background-color: #030712; color: white; font-size: 1rem; outline: none;
+        }
+
+        .suggestions {
+            position: absolute; top: 105%; left: 0; width: 100%; max-height: 220px; 
+            overflow-y: auto; background-color: #1f2937; border-radius: 12px; 
+            list-style: none; z-index: 100; display: none; border: 1px solid var(--accent);
+        }
+
+        .suggestions li { padding: 14px; cursor: pointer; border-bottom: 1px solid #374151; text-align: left; }
+        .suggestions li:hover { background-color: #374151; }
+
+        /* BÚSSOLA NÁUTICA */
+        .compass-frame {
+            position: relative; width: 280px; height: 280px; margin: 2rem 0;
+            border-radius: 50%; border: 12px solid #1f2937;
+            background: radial-gradient(circle, #111827 0%, #030712 100%);
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5), inset 0 0 30px black;
+        }
+
+        .bezel { position: absolute; width: 100%; height: 100%; border-radius: 50%; transition: transform 0.1s linear; }
+        .bezel::before {
+            content: 'N'; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            color: var(--north); font-weight: 900; font-size: 1.2rem;
+        }
+
+        /* AGULHA 3D */
+        .needle { position: absolute; width: 16px; height: 200px; z-index: 5; transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1.1); }
+        .needle-north { position: absolute; top: 0; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 100px solid var(--north); }
+        .needle-south { position: absolute; bottom: 0; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 100px solid #64748b; }
+
+        @keyframes glow-pulse {
+            0% { filter: drop-shadow(0 0 5px var(--success)); }
+            50% { filter: drop-shadow(0 0 20px var(--success)); }
+            100% { filter: drop-shadow(0 0 5px var(--success)); }
+        }
+
+        .needle.locked .needle-north { border-bottom-color: var(--success); }
+        .needle.locked { animation: glow-pulse 0.6s infinite; }
+
+        .center-cap { width: 20px; height: 20px; background: #94a3b8; border-radius: 50%; z-index: 10; border: 3px solid #030712; }
+
+        .info-card { width: 100%; background: #030712; padding: 1.2rem; border-radius: 20px; border: 1px solid #1f2937; margin-bottom: 1.5rem; }
+        .highlight { color: var(--accent); font-weight: 600; }
+
+        /* SEÇÃO DE APOIO (CTA) */
+        .support-box {
+            padding: 1.2rem; border-radius: 20px; background: rgba(56, 189, 248, 0.05);
+            border: 1px dashed #334155;
+        }
+        .support-box p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px; }
+        .btn-donate {
+            display: inline-block; width: 100%; padding: 14px; border-radius: 12px;
+            background: #009ee3; color: white; text-decoration: none; font-weight: bold;
+            font-size: 0.9rem; transition: 0.3s;
+        }
+        .btn-donate:hover { background: #0084c0; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <h2>NAV-SYSTEM</h2>
+        
+        <button id="btn-init">ATIVAR SENSORES</button>
+
+        <div class="search-section" id="search-cont">
+            <input type="text" id="search-input" placeholder="Buscar cidade ou país..." autocomplete="off">
+            <ul id="suggestions" class="suggestions"></ul>
+        </div>
+
+        <div class="compass-frame">
+            <div class="bezel" id="bezel"></div>
+            <div class="needle" id="needle">
+                <div class="needle-north"></div>
+                <div class="needle-south"></div>
+            </div>
+            <div class="center-cap"></div>
+        </div>
+
+        <div class="info-card">
+            <p id="st-gps" style="color: #4b5563; font-size: 0.8rem; margin-bottom: 5px;">Aguardando GPS...</p>
+            <p id="st-dest">Destino: --</p>
+            <p id="st-dist">Distância: --</p>
+        </div>
+
+        <div class="support-box">
+            <p>Gostou da ferramenta? Ajude-nos a manter o projeto ativo e gratuito.</p>
+            <a href="https://mpago.la/1hsCUXr" target="_blank" class="btn-donate">💙 Apoiar via Mercado Pago</a>
+        </div>
+    </div>
+
+    <script>
+        let userPos = null, targetPos = null, heading = 0, audioCtx = null, searchDelay;
+
+        const input = document.getElementById('search-input');
+        const list = document.getElementById('suggestions');
+        const needle = document.getElementById('needle');
+        const bezel = document.getElementById('bezel');
+        const btn = document.getElementById('btn-init');
+
+        function playBeep() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        input.oninput = (e) => {
+            const val = e.target.value.trim().toLowerCase();
+            list.innerHTML = '';
+            if (val.length < 2) return (list.style.display = 'none');
+            clearTimeout(searchDelay);
+            searchDelay = setTimeout(async () => {
+                try {
+                    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${val}&count=5&language=pt`);
+                    const d = await r.json();
+                    if (d.results) {
+                        d.results.forEach(loc => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<strong>${loc.name}</strong>, <small>${loc.country}</small>`;
+                            li.onclick = () => {
+                                targetPos = {lat: loc.latitude, lon: loc.longitude};
+                                input.value = loc.name;
+                                list.style.display = 'none';
+                                document.getElementById('st-dest').innerHTML = `Destino: <span class="highlight">${loc.name}</span>`;
+                                update();
+                            };
+                            list.appendChild(li);
+                        });
+                    }
+                } catch (e) {}
+            }, 400);
+            list.style.display = 'block';
+        };
+
+        btn.onclick = async () => {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            navigator.geolocation.watchPosition(p => {
+                userPos = {lat: p.coords.latitude, lon: p.coords.longitude};
+                document.getElementById('st-gps').innerHTML = "Sinal de Satélite: OK";
+                update();
+            }, () => alert("Erro: Ative o GPS!"), {enableHighAccuracy: true});
+
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                const res = await DeviceOrientationEvent.requestPermission();
+                if (res === 'granted') window.addEventListener('deviceorientation', hOrient);
+            } else {
+                window.addEventListener('deviceorientationabsolute', hOrient);
+                window.addEventListener('deviceorientation', hOrient);
+            }
+            btn.style.display = 'none';
+            document.getElementById('search-cont').style.display = 'block';
+        };
+
+        function hOrient(e) {
+            heading = e.webkitCompassHeading || 360 - e.alpha;
+            bezel.style.transform = `rotate(${-heading}deg)`;
+            update();
+        }
+
+        function update() {
+            if (!userPos || !targetPos) {
+                needle.style.transform = `rotate(${-heading}deg)`;
+                return;
+            }
+            const R = 6371;
+            const dLat = (targetPos.lat - userPos.lat) * Math.PI/180;
+            const dLon = (targetPos.lon - userPos.lon) * Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(userPos.lat*Math.PI/180)*Math.cos(targetPos.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+            const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            document.getElementById('st-dist').innerHTML = `Distância: <span class="highlight">${Math.round(dist)} km</span>`;
+
+            const y = Math.sin(dLon) * Math.cos(targetPos.lat*Math.PI/180);
+            const x = Math.cos(userPos.lat*Math.PI/180)*Math.sin(targetPos.lat*Math.PI/180) - Math.sin(userPos.lat*Math.PI/180)*Math.cos(targetPos.lat*Math.PI/180)*Math.cos(dLon);
+            const bearing = (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
+            const diffAngle = bearing - heading;
+            needle.style.transform = `rotate(${diffAngle}deg)`;
+
+            let check = Math.abs((diffAngle + 180) % 360 - 180);
+            if (check < 6) {
+                if (!needle.classList.contains('locked')) needle.classList.add('locked');
+                playBeep();
+            } else {
+                needle.classList.remove('locked');
+            }
+        }
+    </script>
+</body>
+</html>
