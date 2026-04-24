@@ -1,237 +1,912 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bússola Global Pro - Nav-System</title>
-    <style>
-        :root {
-            --bg: #070a13;
-            --card: #111827;
-            --accent: #0ea5e9;
-            --north: #f43f5e;
-            --success: #10b981;
-            --text: #f8fafc;
-            --muted: #64748b;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bússola do Explorador</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+:root {
+  --leather:    #3b2510;
+  --leather2:   #5a3820;
+  --leather3:   #7a5030;
+  --parchment:  #c8a96e;
+  --parch-dark: #8a6a3a;
+  --parch-pale: #f0ddb8;
+  --ink:        #1a0e05;
+  --rust:       #c03020;
+  --copper:     #b87333;
+  --copper-hi:  #d4956a;
+  --cream:      #f5e8cc;
+  --green-hi:   #44ff88;
+  --green-mid:  #22cc55;
+  --green-dark: #115522;
+}
 
-        body {
-            background-color: var(--bg); color: var(--text);
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 1.5rem;
-        }
+html, body {
+  height: 100%; overflow: hidden;
+  touch-action: manipulation;
+  font-family: 'Nunito', sans-serif;
+}
 
-        .app-container {
-            background-color: var(--card); padding: 2rem; border-radius: 32px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); width: 100%; max-width: 420px;
-            border: 1px solid #1f2937; text-align: center;
-        }
+/* wood background */
+body {
+  background-color: var(--leather);
+  background-image:
+    repeating-linear-gradient(91deg, transparent 0, transparent 20px, rgba(10,5,0,0.07) 20px, rgba(10,5,0,0.07) 21px),
+    repeating-linear-gradient(89deg, transparent 0, transparent 38px, rgba(90,56,32,0.12) 38px, rgba(90,56,32,0.12) 39px),
+    radial-gradient(ellipse at 25% 30%, #4a2c14 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 70%, #3a2010 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, #5a3820 0%, #2a1608 100%);
+}
 
-        h2 { font-weight: 300; letter-spacing: 3px; margin-bottom: 1.5rem; color: #94a3b8; }
+/* noise grain */
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+  opacity: 0.35;
+}
 
-        #btn-init {
-            width: 100%; padding: 20px; border-radius: 16px; border: none;
-            background: linear-gradient(135deg, var(--accent), #0369a1); color: white;
-            font-weight: bold; font-size: 1rem; cursor: pointer;
-            box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3); transition: 0.3s;
-        }
+/* ── LAYOUT ── */
+#app {
+  position: relative; z-index: 1;
+  height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px 16px 14px; gap: 12px;
+}
 
-        .search-section { position: relative; width: 100%; display: none; }
+/* ── HEADER ── */
+.header { text-align: center; width: 100%; }
+.header h1 {
+  font-family: 'Cinzel', serif; font-weight: 900;
+  font-size: clamp(20px, 5.5vw, 30px);
+  color: var(--parchment);
+  text-shadow: 0 0 16px rgba(200,169,110,0.6), 1px 2px 3px rgba(0,0,0,0.8);
+  letter-spacing: 3px; line-height: 1; margin: 2px 0;
+}
+.divider { font-size: 10px; color: var(--parch-dark); letter-spacing: 4px; opacity: 0.8; }
+.subtitle { font-size: 12px; font-weight: 600; color: var(--parch-dark); letter-spacing: 2px; }
 
-        input[type="text"] {
-            width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #374151;
-            background-color: #030712; color: white; font-size: 1rem; outline: none;
-        }
+/* ── SEARCH ── */
+.search-wrap { width: 100%; max-width: 340px; position: relative; }
+.search-wrap input {
+  width: 100%;
+  background: rgba(10,5,0,0.75);
+  border: 2px solid var(--parch-dark);
+  border-radius: 8px;
+  padding: 11px 44px 11px 14px;
+  color: var(--parch-pale);
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
+  outline: none;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.search-wrap input:focus {
+  border-color: var(--parchment);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5), 0 0 12px rgba(200,169,110,0.3);
+}
+.search-wrap input::placeholder { color: var(--parch-dark); font-weight: 400; }
+.search-btn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: linear-gradient(135deg, var(--leather3), var(--parch-dark));
+  border: 1px solid var(--parchment); border-radius: 6px;
+  width: 32px; height: 28px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: var(--cream);
+}
+.search-btn:active { opacity: 0.8; }
 
-        .suggestions {
-            position: absolute; top: 105%; left: 0; width: 100%; max-height: 220px; 
-            overflow-y: auto; background-color: #1f2937; border-radius: 12px; 
-            list-style: none; z-index: 100; display: none; border: 1px solid var(--accent);
-        }
+.suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #180d04; border: 2px solid var(--parch-dark); border-radius: 8px;
+  overflow: hidden; z-index: 100; display: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.8);
+}
+.suggestions.show { display: block; }
+.suggestion-item {
+  padding: 11px 14px; cursor: pointer;
+  font-size: 14px; font-weight: 600; color: var(--parch-pale);
+  border-bottom: 1px solid rgba(200,169,110,0.1);
+  transition: background 0.15s;
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover, .suggestion-item:active { background: rgba(200,169,110,0.15); }
 
-        .suggestions li { padding: 14px; cursor: pointer; border-bottom: 1px solid #374151; text-align: left; }
-        .suggestions li:hover { background-color: #374151; }
+/* ── COMPASS SECTION ── */
+.compass-section {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; width: 100%;
+}
 
-        /* BÚSSOLA NÁUTICA */
-        .compass-frame {
-            position: relative; width: 280px; height: 280px; margin: 2rem 0;
-            border-radius: 50%; border: 12px solid #1f2937;
-            background: radial-gradient(circle, #111827 0%, #030712 100%);
-            display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 0 40px rgba(0,0,0,0.5), inset 0 0 30px black;
-        }
+/* Target label */
+.target-info { text-align: center; min-height: 44px; }
+.target-name {
+  font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(15px, 4vw, 20px);
+  color: var(--parchment); letter-spacing: 2px;
+  text-shadow: 0 0 12px rgba(200,169,110,0.5), 1px 1px 3px rgba(0,0,0,0.8);
+  transition: color 0.6s, text-shadow 0.6s;
+}
+.target-name.on-target {
+  color: var(--green-hi);
+  text-shadow: 0 0 18px rgba(68,255,136,0.9), 1px 1px 3px rgba(0,0,0,0.8);
+}
+.target-details {
+  font-size: 13px; font-weight: 600; color: var(--parch-dark);
+  margin-top: 3px; letter-spacing: 1px;
+}
 
-        .bezel { position: absolute; width: 100%; height: 100%; border-radius: 50%; transition: transform 0.1s linear; }
-        .bezel::before {
-            content: 'N'; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            color: var(--north); font-weight: 900; font-size: 1.2rem;
-        }
+/* ── COMPASS FRAME — leather + rivets ── */
+.compass-frame {
+  position: relative;
+  width: min(74vw, 295px); height: min(74vw, 295px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #8a5a34 0%, #3b2510 55%, #1a0a03 100%);
+  box-shadow:
+    0 0 0 3px #0d0700,
+    0 0 0 7px #6a4020,
+    0 0 0 9px #200e02,
+    0 0 0 13px #5a3818,
+    0 0 35px rgba(0,0,0,0.95),
+    inset 0 2px 8px rgba(255,200,120,0.12);
+  padding: 14px;
+}
+/* copper rivets */
+.compass-frame::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background:
+    radial-gradient(circle 5px at 50% 5.5%,  var(--copper-hi) 0%, var(--copper) 55%, transparent 100%),
+    radial-gradient(circle 5px at 50% 94.5%, var(--copper-hi) 0%, var(--copper) 55%, transparent 100%),
+    radial-gradient(circle 5px at 5.5%  50%, var(--copper-hi) 0%, var(--copper) 55%, transparent 100%),
+    radial-gradient(circle 5px at 94.5% 50%, var(--copper-hi) 0%, var(--copper) 55%, transparent 100%),
+    radial-gradient(circle 3.5px at 21% 17%, var(--copper-hi) 0%, var(--copper) 55%, transparent 100%),
+    radial-gradient(circle 3.5px at 79% 17%, var(--copper-hi) 0%, var(--copper) 55%, transparent 100%),
+    radial-gradient(circle 3.5px at 21% 83%, var(--copper-hi) 0%, var(--copper) 55%, transparent 100%),
+    radial-gradient(circle 3.5px at 79% 83%, var(--copper-hi) 0%, var(--copper) 55%, transparent 100%);
+  pointer-events: none; z-index: 10;
+}
 
-        /* AGULHA 3D */
-        .needle { position: absolute; width: 16px; height: 200px; z-index: 5; transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1.1); }
-        .needle-north { position: absolute; top: 0; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 100px solid var(--north); }
-        .needle-south { position: absolute; bottom: 0; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 100px solid #64748b; }
+/* ── COMPASS FACE ── */
+.compass-ring {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 33%, #d8bc74 0%, #a07840 28%, #7a5820 58%, #4a3010 100%);
+  border: 2px solid #7a5420;
+  box-shadow:
+    inset 0 0 24px rgba(0,0,0,0.55),
+    inset 0 4px 10px rgba(255,220,140,0.18),
+    0 0 0 1px rgba(255,200,100,0.12);
+  position: relative; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  transition: box-shadow 0.4s;
+}
+/* patina */
+.compass-ring::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+  opacity: 0.45; pointer-events: none;
+}
+/* inner ring engraving */
+.compass-ring::after {
+  content: ''; position: absolute; inset: 20px; border-radius: 50%;
+  border: 1px solid rgba(80,50,15,0.45); pointer-events: none;
+}
+/* green glow when on target */
+.compass-ring.on-target {
+  box-shadow:
+    inset 0 0 24px rgba(0,0,0,0.55),
+    inset 0 4px 10px rgba(255,220,140,0.18),
+    0 0 0 1px rgba(68,255,136,0.4),
+    0 0 28px rgba(68,255,136,0.55),
+    0 0 55px rgba(68,255,136,0.25);
+}
 
-        @keyframes glow-pulse {
-            0% { filter: drop-shadow(0 0 5px var(--success)); }
-            50% { filter: drop-shadow(0 0 20px var(--success)); }
-            100% { filter: drop-shadow(0 0 5px var(--success)); }
-        }
+/* ── DEGREE MARKS ── */
+.degree-ring { position: absolute; inset: 5px; border-radius: 50%; pointer-events: none; }
+.degree-mark {
+  position: absolute; top: 0; left: 50%;
+  transform-origin: bottom center;
+  transform: translateX(-50%) rotate(var(--deg));
+  height: 50%;
+}
+.degree-mark::before {
+  content: ''; display: block;
+  width: var(--w, 1px); height: var(--h, 5px);
+  background: var(--ink); opacity: var(--op, 0.35); margin: 0 auto;
+}
 
-        .needle.locked .needle-north { border-bottom-color: var(--success); }
-        .needle.locked { animation: glow-pulse 0.6s infinite; }
+/* ── CARDINALS ── */
+.cardinal {
+  position: absolute;
+  font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(13px, 3.8vw, 17px);
+  color: rgba(20,10,2,0.85);
+  transform: translate(-50%, -50%);
+  z-index: 3; user-select: none;
+  text-shadow: 0 1px 1px rgba(255,210,130,0.4);
+}
+.cardinal.N { top: 11%; left: 50%; color: var(--rust); font-size: clamp(15px, 4.2vw, 19px); }
+.cardinal.S { top: 89%; left: 50%; }
+.cardinal.E { top: 50%; left: 89%; }
+.cardinal.W { top: 50%; left: 11%; }
 
-        .center-cap { width: 20px; height: 20px; background: #94a3b8; border-radius: 50%; z-index: 10; border: 3px solid #030712; }
+/* ── NEEDLE ASSEMBLY ── */
+/* The needle-wrap rotates to track compass heading (so N stays up) */
+.needle-wrap {
+  position: absolute; width: 100%; height: 100%; border-radius: 50%;
+  /* smooth, physics-like easing handled in JS */
+}
 
-        .info-card { width: 100%; background: #030712; padding: 1.2rem; border-radius: 20px; border: 1px solid #1f2937; margin-bottom: 1.5rem; }
-        .highlight { color: var(--accent); font-weight: 600; }
+.needle {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px; height: min(56vw, 225px);
+  display: flex; flex-direction: column; align-items: center;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+}
 
-        /* SEÇÃO DE APOIO (CTA) */
-        .support-box {
-            padding: 1.2rem; border-radius: 20px; background: rgba(56, 189, 248, 0.05);
-            border: 1px dashed #334155;
-        }
-        .support-box p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px; }
-        .btn-donate {
-            display: inline-block; width: 100%; padding: 14px; border-radius: 12px;
-            background: #009ee3; color: white; text-decoration: none; font-weight: bold;
-            font-size: 0.9rem; transition: 0.3s;
-        }
-        .btn-donate:hover { background: #0084c0; transform: translateY(-2px); }
-    </style>
+/* North tip — red/rust, tapered */
+.needle-north {
+  flex: 1; width: 100%;
+  clip-path: polygon(50% 0%, 90% 100%, 50% 82%, 10% 100%);
+  background: linear-gradient(175deg, #ff5533 0%, #cc2210 40%, #991800 100%);
+  transition: background 0.5s, filter 0.5s;
+}
+/* South tip — dark iron */
+.needle-south {
+  flex: 1; width: 100%;
+  clip-path: polygon(50% 100%, 10% 0%, 50% 18%, 90% 0%);
+  background: linear-gradient(175deg, #3a3028 0%, #5a4838 100%);
+}
+
+/* Pivot jewel */
+.needle-center {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px; height: 16px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--copper-hi), var(--copper) 55%, #5a2e0a 100%);
+  border: 2px solid rgba(0,0,0,0.6);
+  box-shadow: 0 0 10px rgba(184,115,51,0.7), inset 0 1px 3px rgba(255,210,120,0.5);
+  z-index: 5;
+}
+
+/* ── TARGET ARROW (green destination pointer, rotates independently) ── */
+.target-needle-wrap {
+  position: absolute; width: 100%; height: 100%; border-radius: 50%;
+  pointer-events: none; display: none;
+}
+.target-needle-wrap.visible { display: block; }
+
+.target-arrow {
+  position: absolute; top: 4%; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 26px solid var(--green-mid);
+  filter: drop-shadow(0 0 7px rgba(34,204,85,0.8));
+  transition: border-bottom-color 0.5s, filter 0.5s;
+  animation: pulse-arrow 1.4s ease-in-out infinite;
+}
+.target-arrow.on-target {
+  border-bottom-color: var(--green-hi);
+  filter: drop-shadow(0 0 18px rgba(68,255,136,1));
+  animation: pulse-arrow-bright 0.7s ease-in-out infinite;
+}
+@keyframes pulse-arrow {
+  0%,100% { opacity: 0.80; filter: drop-shadow(0 0 7px rgba(34,204,85,0.7)); }
+  50%      { opacity: 1.00; filter: drop-shadow(0 0 14px rgba(34,204,85,1)); }
+}
+@keyframes pulse-arrow-bright {
+  0%,100% { opacity: 0.90; filter: drop-shadow(0 0 14px rgba(68,255,136,1)); }
+  50%      { opacity: 1.00; filter: drop-shadow(0 0 28px rgba(68,255,136,1)); }
+}
+
+/* ── CALIBRATION WOBBLE (CSS animation on needle-wrap) ── */
+@keyframes calibrate-wobble {
+  0%   { transform: rotate(0deg); }
+  10%  { transform: rotate(15deg); }
+  25%  { transform: rotate(-10deg); }
+  40%  { transform: rotate(7deg); }
+  55%  { transform: rotate(-5deg); }
+  70%  { transform: rotate(3deg); }
+  85%  { transform: rotate(-1deg); }
+  100% { transform: rotate(0deg); }
+}
+.needle-wrap.calibrating {
+  animation: calibrate-wobble 1.4s ease-in-out;
+}
+
+/* ── ALIGNMENT METER ── */
+.sound-meter {
+  width: min(74vw, 295px); display: none; flex-direction: column; gap: 5px;
+}
+.sound-meter.show { display: flex; }
+.meter-labels {
+  display: flex; justify-content: space-between;
+  font-size: 12px; font-weight: 700; color: var(--parch-dark); letter-spacing: 0.5px;
+}
+.meter-track {
+  height: 10px;
+  background: rgba(0,0,0,0.6); border: 1px solid var(--parch-dark); border-radius: 6px;
+  overflow: hidden; box-shadow: inset 0 1px 4px rgba(0,0,0,0.7);
+}
+.meter-fill {
+  height: 100%; width: 0%; border-radius: 6px;
+  background: linear-gradient(90deg, #2a6a3a 0%, #4aaa6a 60%, #80e060 100%);
+  transition: width 0.2s ease, background 0.4s;
+  box-shadow: 0 0 6px rgba(80,200,90,0.4);
+}
+.meter-fill.aligned {
+  background: linear-gradient(90deg, #30bb50 0%, #60ee80 55%, #aaff70 100%);
+  box-shadow: 0 0 14px rgba(100,255,120,0.9);
+}
+.meter-caption {
+  text-align: center; font-size: 13px; font-weight: 700;
+  color: var(--parch-dark); letter-spacing: 0.5px;
+  transition: color 0.4s;
+}
+.meter-caption.aligned { color: var(--green-hi); }
+
+/* ── METRICS ── */
+.metrics { display: flex; gap: 12px; justify-content: center; }
+.metric-box {
+  background: rgba(10,5,0,0.75); border: 2px solid var(--parch-dark); border-radius: 8px;
+  padding: 8px 16px; text-align: center; min-width: 82px; display: none;
+  box-shadow: inset 0 1px 5px rgba(0,0,0,0.6);
+}
+.metric-box.show { display: block; }
+.metric-val {
+  font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: 20px; color: var(--parchment);
+  text-shadow: 0 0 10px rgba(200,169,110,0.5);
+}
+.metric-lbl {
+  font-size: 10px; font-weight: 700; color: var(--parch-dark);
+  letter-spacing: 2px; margin-top: 2px; text-transform: uppercase;
+}
+
+/* ── STATUS CHIPS ── */
+.status-bar { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.status-chip {
+  background: rgba(0,0,0,0.5); border: 1px solid var(--parch-dark); border-radius: 20px;
+  padding: 5px 12px; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  color: var(--parch-dark); display: flex; align-items: center; gap: 6px;
+}
+.status-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--parch-dark); }
+.status-chip.active { border-color: #44ff88; color: #44ff88; }
+.status-chip.active .dot { background: #44ff88; box-shadow: 0 0 6px #44ff88; }
+
+/* ── SOUND BUTTON ── */
+.sound-btn {
+  background: rgba(10,5,0,0.75); border: 2px solid var(--parch-dark); border-radius: 20px;
+  padding: 7px 18px; color: var(--parch-dark);
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: all 0.25s;
+}
+.sound-btn.on { border-color: var(--parchment); color: var(--parchment); }
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--parch-dark); border-top-color: var(--parchment);
+  border-radius: 50%; animation: spin 0.8s linear infinite; display: none;
+}
+.spinner.show { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+  z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: linear-gradient(145deg, #1e1005, #0d0700);
+  border: 2px solid var(--parch-dark); border-radius: 12px;
+  padding: 30px 24px; text-align: center; max-width: 295px; width: 100%;
+  box-shadow: 0 0 50px rgba(0,0,0,0.95);
+}
+.modal-icon { font-size: 40px; margin-bottom: 12px; }
+.modal h2 {
+  font-family: 'Cinzel', serif; font-weight: 700;
+  color: var(--parchment); font-size: 20px; margin-bottom: 10px;
+  text-shadow: 0 0 12px rgba(200,169,110,0.4); letter-spacing: 2px;
+}
+.modal p { font-size: 14px; font-weight: 600; color: var(--parch-dark); line-height: 1.7; margin-bottom: 22px; }
+.modal-btn {
+  background: linear-gradient(135deg, var(--leather3), var(--parch-dark));
+  border: 2px solid var(--parchment); border-radius: 8px;
+  padding: 13px 24px; color: var(--cream);
+  font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; width: 100%; letter-spacing: 2px; margin-bottom: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+}
+.modal-btn:active { opacity: 0.85; }
+.modal-btn-sec {
+  background: transparent; border: 1px solid rgba(200,169,110,0.3); border-radius: 8px;
+  padding: 10px 24px; color: var(--parch-dark);
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; width: 100%;
+}
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 22px; left: 50%;
+  transform: translateX(-50%) translateY(90px);
+  background: rgba(15,8,2,0.95); border: 1px solid var(--parch-dark); border-radius: 20px;
+  padding: 10px 20px; font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+  color: var(--parch-pale); transition: transform 0.35s ease; z-index: 300; white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
 </head>
 <body>
+<div id="app">
 
-    <div class="app-container">
-        <h2>NAV-SYSTEM</h2>
-        
-        <button id="btn-init">ATIVAR SENSORES</button>
+  <div class="header">
+    <div class="divider">✦ ─────────── ✦</div>
+    <h1>BÚSSOLA</h1>
+    <div class="subtitle">do Explorador</div>
+    <div class="divider">✦ ─────────── ✦</div>
+  </div>
 
-        <div class="search-section" id="search-cont">
-            <input type="text" id="search-input" placeholder="Buscar cidade ou país..." autocomplete="off">
-            <ul id="suggestions" class="suggestions"></ul>
-        </div>
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="🔍  Buscar cidade ou país..." autocomplete="off"/>
+    <button class="search-btn" onclick="doSearch()">⚲</button>
+    <div class="suggestions" id="suggestions"></div>
+  </div>
 
-        <div class="compass-frame">
-            <div class="bezel" id="bezel"></div>
-            <div class="needle" id="needle">
-                <div class="needle-north"></div>
-                <div class="needle-south"></div>
-            </div>
-            <div class="center-cap"></div>
-        </div>
+  <div class="compass-section">
 
-        <div class="info-card">
-            <p id="st-gps" style="color: #4b5563; font-size: 0.8rem; margin-bottom: 5px;">Aguardando GPS...</p>
-            <p id="st-dest">Destino: --</p>
-            <p id="st-dist">Distância: --</p>
-        </div>
-
-        <div class="support-box">
-            <p>Gostou da ferramenta? Ajude-nos a manter o projeto ativo e gratuito.</p>
-            <a href="https://mpago.la/1hsCUXr" target="_blank" class="btn-donate">💙 Apoiar via Mercado Pago</a>
-        </div>
+    <div class="target-info">
+      <div class="target-name" id="targetName">— Aguardando Destino —</div>
+      <div class="target-details" id="targetDetails">Digite uma cidade ou país acima</div>
     </div>
 
-    <script>
-        let userPos = null, targetPos = null, heading = 0, audioCtx = null, searchDelay;
+    <!-- compass -->
+    <div class="compass-frame">
+      <div class="compass-ring" id="compassRing">
+        <div class="degree-ring" id="degreeRing"></div>
 
-        const input = document.getElementById('search-input');
-        const list = document.getElementById('suggestions');
-        const needle = document.getElementById('needle');
-        const bezel = document.getElementById('bezel');
-        const btn = document.getElementById('btn-init');
+        <span class="cardinal N">N</span>
+        <span class="cardinal S">S</span>
+        <span class="cardinal E">L</span>
+        <span class="cardinal W">O</span>
 
-        function playBeep() {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
-            osc.connect(g); g.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-        }
+        <!-- magnetic needle — rotates with heading -->
+        <div class="needle-wrap" id="needleWrap">
+          <div class="needle">
+            <div class="needle-north" id="needleNorth"></div>
+            <div class="needle-south"></div>
+          </div>
+          <div class="needle-center"></div>
+        </div>
 
-        input.oninput = (e) => {
-            const val = e.target.value.trim().toLowerCase();
-            list.innerHTML = '';
-            if (val.length < 2) return (list.style.display = 'none');
-            clearTimeout(searchDelay);
-            searchDelay = setTimeout(async () => {
-                try {
-                    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${val}&count=5&language=pt`);
-                    const d = await r.json();
-                    if (d.results) {
-                        d.results.forEach(loc => {
-                            const li = document.createElement('li');
-                            li.innerHTML = `<strong>${loc.name}</strong>, <small>${loc.country}</small>`;
-                            li.onclick = () => {
-                                targetPos = {lat: loc.latitude, lon: loc.longitude};
-                                input.value = loc.name;
-                                list.style.display = 'none';
-                                document.getElementById('st-dest').innerHTML = `Destino: <span class="highlight">${loc.name}</span>`;
-                                update();
-                            };
-                            list.appendChild(li);
-                        });
-                    }
-                } catch (e) {}
-            }, 400);
-            list.style.display = 'block';
-        };
+        <!-- destination arrow — separate rotation layer -->
+        <div class="target-needle-wrap" id="targetWrap">
+          <div class="target-arrow" id="targetArrow"></div>
+        </div>
+      </div>
+    </div>
 
-        btn.onclick = async () => {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            navigator.geolocation.watchPosition(p => {
-                userPos = {lat: p.coords.latitude, lon: p.coords.longitude};
-                document.getElementById('st-gps').innerHTML = "Sinal de Satélite: OK";
-                update();
-            }, () => alert("Erro: Ative o GPS!"), {enableHighAccuracy: true});
+    <!-- alignment meter (visible when sound on) -->
+    <div class="sound-meter" id="soundMeter">
+      <div class="meter-labels">
+        <span>⟵ Longe</span>
+        <span>Alinhado ⟶</span>
+      </div>
+      <div class="meter-track">
+        <div class="meter-fill" id="meterFill"></div>
+      </div>
+      <div class="meter-caption" id="meterCaption">Aponte o celular para o destino</div>
+    </div>
 
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                const res = await DeviceOrientationEvent.requestPermission();
-                if (res === 'granted') window.addEventListener('deviceorientation', hOrient);
-            } else {
-                window.addEventListener('deviceorientationabsolute', hOrient);
-                window.addEventListener('deviceorientation', hOrient);
-            }
-            btn.style.display = 'none';
-            document.getElementById('search-cont').style.display = 'block';
-        };
+    <div class="metrics">
+      <div class="metric-box" id="bearingBox">
+        <div class="metric-val" id="bearingVal">--°</div>
+        <div class="metric-lbl">Rumo</div>
+      </div>
+      <div class="metric-box" id="distanceBox">
+        <div class="metric-val" id="distanceVal">--</div>
+        <div class="metric-lbl">Distância</div>
+      </div>
+    </div>
 
-        function hOrient(e) {
-            heading = e.webkitCompassHeading || 360 - e.alpha;
-            bezel.style.transform = `rotate(${-heading}deg)`;
-            update();
-        }
+    <div class="status-bar">
+      <div class="status-chip" id="gpsChip"><span class="dot"></span>GPS</div>
+      <div class="status-chip" id="compassChip"><span class="dot"></span>Bússola</div>
+      <div class="spinner" id="spinner"></div>
+    </div>
 
-        function update() {
-            if (!userPos || !targetPos) {
-                needle.style.transform = `rotate(${-heading}deg)`;
-                return;
-            }
-            const R = 6371;
-            const dLat = (targetPos.lat - userPos.lat) * Math.PI/180;
-            const dLon = (targetPos.lon - userPos.lon) * Math.PI/180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(userPos.lat*Math.PI/180)*Math.cos(targetPos.lat*Math.PI/180)*Math.sin(dLon/2)**2;
-            const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            document.getElementById('st-dist').innerHTML = `Distância: <span class="highlight">${Math.round(dist)} km</span>`;
+    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔇 &nbsp;Som Desligado</button>
 
-            const y = Math.sin(dLon) * Math.cos(targetPos.lat*Math.PI/180);
-            const x = Math.cos(userPos.lat*Math.PI/180)*Math.sin(targetPos.lat*Math.PI/180) - Math.sin(userPos.lat*Math.PI/180)*Math.cos(targetPos.lat*Math.PI/180)*Math.cos(dLon);
-            const bearing = (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
-            const diffAngle = bearing - heading;
-            needle.style.transform = `rotate(${diffAngle}deg)`;
+  </div>
+</div>
 
-            let check = Math.abs((diffAngle + 180) % 360 - 180);
-            if (check < 6) {
-                if (!needle.classList.contains('locked')) needle.classList.add('locked');
-                playBeep();
-            } else {
-                needle.classList.remove('locked');
-            }
-        }
-    </script>
+<!-- modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-icon">🧭</div>
+    <h2>Permissões</h2>
+    <p>Para a bússola funcionar precisamos acessar sua localização e o sensor de orientação do celular.</p>
+    <button class="modal-btn" onclick="requestPermissions()">ATIVAR NAVEGAÇÃO</button>
+    <button class="modal-btn-sec" onclick="closeModal()">Usar sem sensores</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────
+let compassHeading = 0;       // device heading degrees
+let targetBearing  = null;    // bearing to destination
+let userLat = null, userLon = null;
+let targetLat = null, targetLon = null;
+let soundEnabled = false;
+let audioCtx = null;
+let lastBeepTime = 0;
+let beepInterval = 4500;
+let orientationActive = false;
+
+// Physics-based needle smoothing
+let needleAngle  = 0;   // current rendered angle
+let needleVel    = 0;   // angular velocity
+let arrowAngle   = 0;
+let arrowVel     = 0;
+
+let alignScore = 0;     // 0 = opposite, 1 = perfectly aligned
+let isOnTarget = false; // true when score > 0.92
+let calibrating = false;
+
+let lastTs = null;
+
+// ── DEGREE MARKS ──────────────────────────────────────────────────────────
+(function() {
+  const ring = document.getElementById('degreeRing');
+  for (let d = 0; d < 360; d += 5) {
+    const m = document.createElement('div');
+    m.className = 'degree-mark';
+    m.style.setProperty('--deg', d + 'deg');
+    const maj = d % 90 === 0, med = d % 45 === 0;
+    m.style.setProperty('--w',  maj ? '2.5px' : med ? '1.5px' : '1px');
+    m.style.setProperty('--h',  maj ? '15px'  : med ? '10px'  : '5px');
+    m.style.setProperty('--op', maj ? '0.75'  : med ? '0.55'  : '0.30');
+    ring.appendChild(m);
+  }
+})();
+
+// ── AUDIO ─────────────────────────────────────────────────────────────────
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playBeep(freq, dur, vol) {
+  try {
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.frequency.value = freq; osc.type = 'sine';
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur + 0.02);
+  } catch(e) {}
+}
+
+// Volume + pitch + interval all scale with alignment
+function playDirectionSound(score) {
+  if (score > 0.93) {
+    playBeep(880, 0.10, 0.65); setTimeout(() => playBeep(1100, 0.12, 0.70), 110);
+    beepInterval = 500;
+  } else if (score > 0.82) {
+    playBeep(740, 0.12, 0.48); beepInterval = 850;
+  } else if (score > 0.65) {
+    playBeep(600, 0.13, 0.34); beepInterval = 1300;
+  } else if (score > 0.45) {
+    playBeep(480, 0.14, 0.22); beepInterval = 2000;
+  } else if (score > 0.22) {
+    playBeep(370, 0.13, 0.12); beepInterval = 3200;
+  } else {
+    playBeep(270, 0.11, 0.05); beepInterval = 5000;
+  }
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('soundBtn');
+  btn.innerHTML = soundEnabled ? '🔊 &nbsp;Som Ligado' : '🔇 &nbsp;Som Desligado';
+  btn.classList.toggle('on', soundEnabled);
+  document.getElementById('soundMeter').classList.toggle('show', soundEnabled && targetBearing !== null);
+  if (soundEnabled) {
+    try { getCtx().resume(); } catch(e) {}
+    playBeep(440, 0.10, 0.22);
+    showToast('Som ativado 🔊');
+  } else {
+    showToast('Som desativado');
+  }
+}
+
+// ── PHYSICS NEEDLE ANIMATION ──────────────────────────────────────────────
+// Spring + damper model so needle swings naturally and settles smoothly
+const SPRING = 8.0;    // stiffness
+const DAMPER = 0.72;   // 0=oscillates forever, 1=critically damped
+
+function shortAngleDiff(from, to) {
+  let d = to - from;
+  while (d >  180) d -= 360;
+  while (d < -180) d += 360;
+  return d;
+}
+
+function tick(ts) {
+  const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0.016;
+  lastTs = ts;
+
+  // ── Needle (magnetic) ──
+  if (!calibrating) {
+    const needleTarget = -compassHeading;
+    const errN = shortAngleDiff(needleAngle, needleTarget);
+    needleVel += errN * SPRING * dt;
+    needleVel *= Math.pow(DAMPER, dt * 60);
+    needleAngle += needleVel * dt;
+    document.getElementById('needleWrap').style.transform = `rotate(${needleAngle}deg)`;
+  }
+
+  // ── Target arrow ──
+  if (targetBearing !== null) {
+    const arrowTarget = targetBearing - compassHeading;
+    const errA = shortAngleDiff(arrowAngle, arrowTarget);
+    arrowVel += errA * SPRING * dt;
+    arrowVel *= Math.pow(DAMPER, dt * 60);
+    arrowAngle += arrowVel * dt;
+    document.getElementById('targetWrap').style.transform = `rotate(${arrowAngle}deg)`;
+
+    // Alignment score: cosine of angle diff (0°=1.0, 90°=0.5, 180°=0.0)
+    let diff = ((arrowAngle % 360) + 360) % 360;
+    if (diff > 180) diff = 360 - diff;
+    alignScore = (Math.cos(diff * Math.PI / 180) + 1) / 2;
+
+    const wasOnTarget = isOnTarget;
+    isOnTarget = alignScore > 0.92;
+
+    // Toggle green glow states
+    if (isOnTarget !== wasOnTarget) {
+      document.getElementById('compassRing').classList.toggle('on-target', isOnTarget);
+      document.getElementById('targetArrow').classList.toggle('on-target', isOnTarget);
+      document.getElementById('targetName').classList.toggle('on-target', isOnTarget);
+    }
+
+    // Update meter
+    if (soundEnabled) {
+      const pct = Math.round(alignScore * 100);
+      const fill = document.getElementById('meterFill');
+      const cap  = document.getElementById('meterCaption');
+      fill.style.width = pct + '%';
+      fill.classList.toggle('aligned', pct > 85);
+      cap.classList.toggle('aligned', pct > 85);
+      if (pct > 93)      cap.textContent = '★  Na direção certa!  ★';
+      else if (pct > 82) cap.textContent = 'Quase! Gire um pouquinho...';
+      else if (pct > 65) cap.textContent = 'Boa direção! Continue...';
+      else if (pct > 45) cap.textContent = 'Continue girando...';
+      else               cap.textContent = 'Aponte o celular para o destino';
+    }
+
+    // Sound beacon
+    if (soundEnabled) {
+      const now = Date.now();
+      if (now - lastBeepTime > beepInterval) {
+        lastBeepTime = now;
+        playDirectionSound(alignScore);
+      }
+    }
+  }
+
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// ── CALIBRATION WOBBLE ────────────────────────────────────────────────────
+function triggerCalibration() {
+  if (calibrating) return;
+  calibrating = true;
+  const wrap = document.getElementById('needleWrap');
+  wrap.classList.add('calibrating');
+  setTimeout(() => {
+    wrap.classList.remove('calibrating');
+    calibrating = false;
+    needleVel = 0; // reset velocity after wobble
+  }, 1500);
+}
+
+// ── ORIENTATION ───────────────────────────────────────────────────────────
+function handleOrientation(e) {
+  let h = 0;
+  if (e.webkitCompassHeading !== undefined) h = e.webkitCompassHeading;
+  else if (e.alpha !== null) h = 360 - e.alpha;
+  compassHeading = h;
+  if (!orientationActive) {
+    orientationActive = true;
+    setChip('compassChip', true);
+  }
+}
+
+function setChip(id, on) {
+  const c = document.getElementById(id);
+  c.className = 'status-chip' + (on ? ' active' : '');
+  const label = id === 'gpsChip' ? 'GPS' : 'Bússola';
+  c.innerHTML = `<span class="dot"></span>${label}`;
+}
+
+async function requestPermissions() {
+  closeModal();
+
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(
+      pos => {
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        setChip('gpsChip', true);
+        if (targetLat !== null) recalcBearing();
+      },
+      () => { setChip('gpsChip', false); showToast('GPS indisponível — modo manual'); },
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+  }
+
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      const p = await DeviceOrientationEvent.requestPermission();
+      if (p === 'granted') {
+        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        window.addEventListener('deviceorientation', handleOrientation, true);
+        triggerCalibration();
+        showToast('Bússola ativada! 🧭');
+      }
+    } catch(e) { showToast('Permissão negada para bússola'); }
+  } else {
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    window.addEventListener('deviceorientation', handleOrientation, true);
+    triggerCalibration();
+    showToast('Sensores ativados! 🧭');
+  }
+}
+
+// ── GEO MATH ──────────────────────────────────────────────────────────────
+const toRad = d => d * Math.PI / 180;
+const toDeg = r => r * 180 / Math.PI;
+
+function calcBearing(la1, lo1, la2, lo2) {
+  const dL = toRad(lo2 - lo1);
+  const y = Math.sin(dL) * Math.cos(toRad(la2));
+  const x = Math.cos(toRad(la1)) * Math.sin(toRad(la2)) -
+            Math.sin(toRad(la1)) * Math.cos(toRad(la2)) * Math.cos(dL);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function calcDistance(la1, lo1, la2, lo2) {
+  const R = 6371, dLa = toRad(la2 - la1), dLo = toRad(lo2 - lo1);
+  const a = Math.sin(dLa/2)**2 + Math.cos(toRad(la1)) * Math.cos(toRad(la2)) * Math.sin(dLo/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function fmtDist(km) {
+  return km < 1 ? Math.round(km*1000)+'m' : km < 100 ? km.toFixed(1)+'km' : Math.round(km)+'km';
+}
+
+function recalcBearing() {
+  if (userLat === null || targetLat === null) return;
+  targetBearing = calcBearing(userLat, userLon, targetLat, targetLon);
+  const dist = calcDistance(userLat, userLon, targetLat, targetLon);
+  document.getElementById('bearingVal').textContent  = Math.round(targetBearing) + '°';
+  document.getElementById('distanceVal').textContent = fmtDist(dist);
+  document.getElementById('bearingBox').classList.add('show');
+  document.getElementById('distanceBox').classList.add('show');
+}
+
+// ── GEOCODING ─────────────────────────────────────────────────────────────
+let searchTimeout = null;
+
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  const q = this.value.trim();
+  if (q.length < 2) { hideSug(); return; }
+  searchTimeout = setTimeout(() => fetchSug(q), 380);
+});
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) hideSug();
+});
+
+async function fetchSug(q) {
+  showSpinner(true);
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=pt`);
+    showSug(await r.json());
+  } catch(e) { hideSug(); } finally { showSpinner(false); }
+}
+
+function showSug(data) {
+  const box = document.getElementById('suggestions');
+  if (!data.length) { box.classList.remove('show'); return; }
+  box.innerHTML = data.map(item => {
+    const name = item.display_name.split(',').slice(0, 2).join(', ');
+    return `<div class="suggestion-item" onclick="selectPlace(${item.lat},${item.lon},'${name.replace(/'/g,"\\'")}')">📍  ${name}</div>`;
+  }).join('');
+  box.classList.add('show');
+}
+function hideSug() { document.getElementById('suggestions').classList.remove('show'); }
+
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+  hideSug(); showSpinner(true);
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&accept-language=pt`);
+    const data = await r.json();
+    if (data.length) selectPlace(data[0].lat, data[0].lon, data[0].display_name.split(',').slice(0,2).join(', '));
+    else showToast('Local não encontrado 😔');
+  } catch(e) { showToast('Erro na busca. Tente novamente.'); } finally { showSpinner(false); }
+}
+
+function selectPlace(lat, lon, name) {
+  targetLat = parseFloat(lat); targetLon = parseFloat(lon);
+  hideSug();
+  document.getElementById('searchInput').value = name;
+  document.getElementById('targetName').textContent = name.split(',')[0].toUpperCase();
+  document.getElementById('targetWrap').classList.add('visible');
+
+  if (userLat !== null) {
+    recalcBearing();
+    document.getElementById('targetDetails').textContent = `Rumo ${Math.round(targetBearing)}° · Destino marcado`;
+  } else {
+    targetBearing = 55;
+    document.getElementById('targetDetails').textContent = 'Ative o GPS para a distância real';
+    document.getElementById('bearingBox').classList.remove('show');
+    document.getElementById('distanceBox').classList.remove('show');
+  }
+
+  if (soundEnabled) document.getElementById('soundMeter').classList.add('show');
+
+  // reset arrow velocity for smooth transition
+  arrowVel = 0;
+
+  // calibration wobble on needle when new destination set
+  triggerCalibration();
+
+  playBeep(550, 0.06, 0.22);
+  setTimeout(() => playBeep(780, 0.09, 0.28), 90);
+  showToast(`Destino: ${name.split(',')[0]} ✦`);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function showSpinner(s) { document.getElementById('spinner').classList.toggle('show', s); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => document.getElementById('modal').classList.add('show'), 600);
+
+  // Desktop: simulate slow rotation so the needle moves visually
+  if (!/Mobi|Android/i.test(navigator.userAgent)) {
+    let a = 0;
+    setInterval(() => { compassHeading = (a += 0.35) % 360; }, 50);
+  }
+});
+</script>
 </body>
 </html>
